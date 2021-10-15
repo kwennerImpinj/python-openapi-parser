@@ -10,8 +10,8 @@ from json import decoder
 from bs4 import BeautifulSoup, SoupStrainer
 import csv
 
+# download latest API spec JSON file
 urlImpinjPlatform = 'https://platform.impinj.com'
-
 urlApiOverview = urlImpinjPlatform + '/site/docs/reader_api_welcome/index.gsp'
 pageOverview = requests.get(urlApiOverview)
 soup = BeautifulSoup(pageOverview.content, features="html.parser", parse_only=SoupStrainer('a'))
@@ -27,8 +27,7 @@ paths = jsonParsedFile['paths']
 
 endpoints = []
 
-# print('paths: ', json.dumps(paths, indent=4))
-
+# build array of paths & REST commands
 print('path list: ')
 for path in paths:
     print(path)
@@ -41,11 +40,13 @@ for path in paths:
     
 print(endpoints)
 
+# setup CSV parameters
 fields = ['Endpoint', 'Request Type']
 rows = endpoints
 
 filename = 'impinj_iot_dev_intfc_endpoints.csv'
 
+# write to CSV file
 with open(filename, 'w', newline='') as csvfile:
     # creating a csv writer object 
     csvwriter = csv.writer(csvfile) 
