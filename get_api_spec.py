@@ -10,50 +10,74 @@ from json import decoder
 from bs4 import BeautifulSoup, SoupStrainer
 import csv
 
-# download latest API spec JSON file
 urlImpinjPlatform = 'https://platform.impinj.com'
-urlApiOverview = urlImpinjPlatform + '/site/docs/reader_api_welcome/index.gsp'
-pageOverview = requests.get(urlApiOverview)
-soup = BeautifulSoup(pageOverview.content, features="html.parser", parse_only=SoupStrainer('a'))
-endpointDownloadJSON = soup.find_all('a', string='JSON format', limit=1)[0]['href']
-urlDownloadJSON = urlImpinjPlatform + endpointDownloadJSON
-print("Downloading API spec from: ", urlDownloadJSON)
 
-fileApiJson = requests.get(urlDownloadJSON).content
-stringApiJson = fileApiJson.decode("utf8")
-jsonParsedFile = json.loads(stringApiJson)
+versions = [
+    "1_0",
+    "1_2",
+    "1_3",
+    "1_4",
+    "1_5"
+]
 
-paths = jsonParsedFile['paths']
+endpointsSpecUrl = []
 
-endpoints = []
+for version in versions:
+    endpoint = '/site/docs/reader_api_welcome/archive/v' + version + '/index.gsp'
+    endpointsSpecUrl.append(endpoint)
 
-# build array of paths & REST commands
-print('path list: ')
-for path in paths:
-    print(path)
-    for key in paths[path].keys():
-        print ("   ", key)
-        endpoint = []
-        endpoint.append(path)
-        endpoint.append(key)
-        endpoints.append(endpoint)
-    
-print(endpoints)
+# set current API version spec source (replace last version)
+endpointsSpecUrl[len(endpointsSpecUrl)-1] = '/site/docs/reader_api_welcome/index.gsp' 
 
-# setup CSV parameters
-fields = ['Endpoint', 'Request Type']
-rows = endpoints
+# get all API specs from impinj website
+apiSpecs = []
 
-filename = 'impinj_iot_dev_intfc_endpoints.csv'
+for iteration, endpointSpecUrl in enumerate(endpointsSpecUrl):
 
-# write to CSV file
-with open(filename, 'w', newline='') as csvfile:
-    # creating a csv writer object 
-    csvwriter = csv.writer(csvfile) 
+    urlApiOverview = urlImpinjPlatform + endpointSpecUrl
+    pageOverview = requests.get(urlApiOverview)
+    soup = BeautifulSoup(pageOverview.content, features="html.parser", parse_only=SoupStrainer('a'))
+    endpointDownloadJSON = soup.find_all('a', string='JSON format', limit=1)[0]['href']
+    urlDownloadJSON = urlImpinjPlatform + endpointDownloadJSON
+    print("Downloading API spec version " + versions[iteration] + " from: ", urlDownloadJSON)
+
+    fileApiJson = requests.get(urlDownloadJSON).content
+    stringApiJson = fileApiJson.decode("utf8")
+    apiSpecs.append(json.loads(stringApiJson)['paths'])
+
+
+# parse list of API endpoints from each full spec
+for iteration, paths in enumerate(apiSpecs):
+
+    endpoints = []
+
+    # build array of paths & REST commands
+    print('path list: ')
+    for path in paths:
+        print(path)
+        for key in paths[path].keys():
+            print ("   ", key)
+            endpoint = []
+            endpoint.append(path)
+            endpoint.append(key)
+            endpoints.append(endpoint)
         
-    # writing the fields 
-    csvwriter.writerow(fields) 
-        
-    # writing the data rows 
-    csvwriter.writerows(rows)
+    print(endpoints)
+
+    # setup CSV parameters
+    fields = ['Endpoint', 'Request Type']
+    rows = endpoints
+
+    filename = 'impinj_iot_dev_intfc_endpoints_v' + versions[iteration] + '.csv'
+
+    # write to CSV file
+    with open(filename, 'w', newline='') as csvfile:
+        # creating a csv writer object 
+        csvwriter = csv.writer(csvfile) 
+            
+        # writing the fields 
+        csvwriter.writerow(fields) 
+            
+        # writing the data rows 
+        csvwriter.writerows(rows)
 
